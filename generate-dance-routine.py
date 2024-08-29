@@ -1,77 +1,88 @@
 import os
-import base64
-import io
-from typing import List, Dict
-import multiprocessing
 import boto3
-from PIL import Image
+import json
+import base64
+import sys
 
-# Initialize the boto3 client outside the function
-client = boto3.client("bedrock-runtime", region_name="us-west-2")
+# Set your AWS credentials and region
+# Uncomment and set these if not using AWS CLI configuration
+# os.environ['AWS_ACCESS_KEY_ID'] = 'your_access_key_id'
+# os.environ['AWS_SECRET_ACCESS_KEY'] = 'your_secret_access_key'
+# os.environ['AWS_REGION'] = 'your_region'
+
+# Instantiate a Bedrock client
+bedrock_runtime_client = boto3.client('bedrock-runtime')
+
+# Select the model ID
 model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
-def process_image(args):
-    image_path, prompt = args
-    filename = os.path.basename(image_path)
+# Specify the directory containing the images
+image_dir = 'results/pump'
 
-    try:
-        with Image.open(image_path) as img:
-            img = img.resize((512, 512))
-            img_byte_arr = io.BytesIO()
-            img.save(img_byte_arr, format='JPEG')
-            
-            img_byte_arr = img_byte_arr.getvalue()
-            base64_image = base64.b64encode(img_byte_arr).decode('utf-8')
+# Initialize an empty list to store the results
+results = []
 
-        conversation = [
+# Get the total number of images in the directory
+image_files = [f for f in os.listdir(image_dir) if f.endswith('.jpg') or f.endswith('.png')]
+total_images = len(image_files)
+
+# Iterate over the images in the directory
+for i, filename in enumerate(image_files, start=1):
+    image_path = os.path.join(image_dir, filename)
+    with open(image_path, 'rb') as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode()
+
+    # Prepare the payload
+    payload = {
+        "messages": [
             {
                 "role": "user",
                 "content": [
-                    {"image": base64_image},
-                    {"text": prompt}
-                ],
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": encoded_image
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "Explain this AWS architecture diagram."
+                    }
+                ]
             }
-        ]
+        ],
+        "max_tokens": 10000,
+        "anthropic_version": "bedrock-2023-05-31"
+    }
 
-        response = client.converse(
-            modelId=model_id,
-            messages=conversation,
-            inferenceConfig={"maxTokens": 4096, "temperature": 0},
-            additionalModelRequestFields={"top_k": 250}
-        )
+    # Invoke the model
+    response = bedrock_runtime_client.invoke_model(
+        modelId=model_id,
+        contentType="application/json",
+        body=json.dumps(payload)
+    )
 
-        response_text = response["output"]["message"]["content"][0]["text"]
-        print(f"Successfully processed {filename}")
-        return response_text
+    # Process the response
+    output_binary = response["body"].read()
+    output_json = json.loads(output_binary)
 
-    except Exception as e:
-        print(f"ERROR: Can't process '{filename}'. Reason: {e}")
-        return None
+    # Append the result to the list
+    result = {
+        'filename': filename,
+        'response': output_json
+    }
+    results.append(result)
 
+    # Update the progress bar
+    progress = (i / total_images) * 100
+    remaining = 100 - progress
+    sys.stdout.write(f"\rProcessing images: [{('=' * int(progress // 2))}{(' ' * int(remaining // 2))}] {progress:.2f}% remaining")
+    sys.stdout.flush()
 
-def process_images(directory: str, prompt: str) -> List[Dict]:
-    print(f"Beginning image processing in directory: {directory}")
-    image_paths = [os.path.join(directory, filename) for filename in os.listdir(directory)
-                   if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+# Save the results as a JSON file
+with open('result.json', 'w', encoding='utf-8') as file:
+    json.dump(results, file, ensure_ascii=False, indent=4)
 
-    pool = multiprocessing.Pool()
-    results = pool.map(process_image, [(path, prompt) for path in image_paths])
-    pool.close()
-    pool.join()
-
-    print(f"Image processing completed. Total images processed: {len(results)}")
-    return [{"image_name": os.path.basename(path), "result": result}
-            for path, result in zip(image_paths, results) if result is not None]
-
-# Usage
-directory = "results/pump"
-prompt = "Estimate the x,y,z positions of the hand left, hand right, knee left, and knee right"
-
-print("Starting the image analysis process...")
-results = process_images(directory, prompt)
-
-print("Analysis complete. Printing results:")
-for result in results:
-    print(result)
-
-print("Process finished successfully.")
+print("\nResults saved to result.json")
