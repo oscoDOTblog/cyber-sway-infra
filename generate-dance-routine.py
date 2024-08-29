@@ -48,7 +48,7 @@ for i, filename in enumerate(image_files, start=1):
                     },
                     {
                         "type": "text",
-                        "text": "Explain this AWS architecture diagram."
+                        "text": "Take the following humanoid image and estimate the approximate x y z coordinates if you were the humanoid at 0,0,0 for the leftHand, rightHand, leftKnee, and rightKnee, and save the result as a JSON. Measure in steps of 1 and do you best!"
                     }
                 ]
             }
