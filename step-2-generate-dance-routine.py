@@ -3,6 +3,7 @@ import boto3
 import json
 import base64
 import sys
+import time
 
 # Set your AWS credentials and region
 # Uncomment and set these if not using AWS CLI configuration
@@ -25,6 +26,9 @@ results = []
 # Get the total number of images in the directory
 image_files = [f for f in os.listdir(image_dir) if f.endswith('.jpg') or f.endswith('.png')]
 total_images = len(image_files)
+
+# Record the start time
+start_time = time.time()
 
 # Iterate over the images in the directory
 for i, filename in enumerate(image_files, start=1):
@@ -85,4 +89,9 @@ for i, filename in enumerate(image_files, start=1):
 with open('result.json', 'w', encoding='utf-8') as file:
     json.dump(results, file, ensure_ascii=False, indent=4)
 
-print("\nResults saved to result.json")
+# Record the end time and calculate elapsed time
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print(f"\nTotal elapsed time: {elapsed_time:.2f} seconds")
+print("Results saved to result.json")
