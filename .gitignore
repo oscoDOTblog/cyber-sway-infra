@@ -1,4 +1,5 @@
 # Custom 
+result.json
 data/*.mp4
 results/*
 !results/README.md

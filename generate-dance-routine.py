@@ -1,61 +1,77 @@
-import json
-import boto3
-import cv2
 import os
+import base64
+import io
+from typing import List, Dict
+import multiprocessing
+import boto3
+from PIL import Image
 
-# Initialize AWS clients
-bedrock_runtime = boto3.client('bedrock-runtime')
+# Initialize the boto3 client outside the function
+client = boto3.client("bedrock-runtime", region_name="us-west-2")
+model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
-# Define the preprocess_frame function
-def preprocess_frame(frame, target_size=(256, 256)):
-    """
-    Preprocess the frame by resizing it to a fixed size.
-    
-    Args:
-        frame (numpy.ndarray): The input frame.
-        target_size (tuple): The target size for resizing the frame.
-        
-    Returns:
-        numpy.ndarray: The preprocessed frame.
-    """
-    return cv2.resize(frame, target_size)
+def process_image(args):
+    image_path, prompt = args
+    filename = os.path.basename(image_path)
 
-# Open the local video file
-video = cv2.VideoCapture('data/pump.mp4')
+    try:
+        with Image.open(image_path) as img:
+            img = img.resize((512, 512))
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='JPEG')
+            
+            img_byte_arr = img_byte_arr.getvalue()
+            base64_image = base64.b64encode(img_byte_arr).decode('utf-8')
 
-# Initialize the result array
-dance_sequence = []
+        conversation = [
+            {
+                "role": "user",
+                "content": [
+                    {"image": base64_image},
+                    {"text": prompt}
+                ],
+            }
+        ]
 
-# Process each frame of the video
-while True:
-    ret, frame = video.read()
-    if not ret:
-        break
+        response = client.converse(
+            modelId=model_id,
+            messages=conversation,
+            inferenceConfig={"maxTokens": 4096, "temperature": 0},
+            additionalModelRequestFields={"top_k": 250}
+        )
 
-    # Preprocess the frame (resize to 256x256)
-    preprocessed_frame = preprocess_frame(frame)
+        response_text = response["output"]["message"]["content"][0]["text"]
+        print(f"Successfully processed {filename}")
+        return response_text
 
-    # Send the preprocessed frame to the AWS Bedrock Pose Estimation model
-    response = bedrock_runtime.detect_pose(
-        ModelId='aws-bedrock-pose-estimation',
-        Image=preprocessed_frame
-    )
+    except Exception as e:
+        print(f"ERROR: Can't process '{filename}'. Reason: {e}")
+        return None
 
-    # Extract the keypoints from the model response
-    keypoints = extract_keypoints(response)
 
-    # Reformat the keypoints to match the required format
-    reformatted_keypoints = {
-        "leftFoot": keypoints["keypoints"][27],
-        "rightFoot": keypoints["keypoints"][28],
-        "head": keypoints["keypoints"][0],
-        "leftHand": keypoints["keypoints"][15],
-        "rightHand": keypoints["keypoints"][16]
-    }
+def process_images(directory: str, prompt: str) -> List[Dict]:
+    print(f"Beginning image processing in directory: {directory}")
+    image_paths = [os.path.join(directory, filename) for filename in os.listdir(directory)
+                   if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
 
-    # Append the keypoints to the dance sequence
-    dance_sequence.append(reformatted_keypoints)
+    pool = multiprocessing.Pool()
+    results = pool.map(process_image, [(path, prompt) for path in image_paths])
+    pool.close()
+    pool.join()
 
-# Write the dance sequence to a local JSON file
-with open('results.json', 'w') as f:
-    json.dump(dance_sequence, f)
+    print(f"Image processing completed. Total images processed: {len(results)}")
+    return [{"image_name": os.path.basename(path), "result": result}
+            for path, result in zip(image_paths, results) if result is not None]
+
+# Usage
+directory = "results/pump"
+prompt = "Estimate the x,y,z positions of the hand left, hand right, knee left, and knee right"
+
+print("Starting the image analysis process...")
+results = process_images(directory, prompt)
+
+print("Analysis complete. Printing results:")
+for result in results:
+    print(result)
+
+print("Process finished successfully.")

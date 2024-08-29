@@ -47,8 +47,8 @@ def extract_frames(video_path, output_dir, frames_per_second=30):
                 break
             
             if frame_number % interval == 0:
-                output_file = output_path / f"{frame_number:06d}.jpg"
-                cv2.imwrite(str(output_file), frame)
+                output_file = output_path / f"{frame_number:06d}.jpg"  # Changed extension to .jpg
+                cv2.imwrite(str(output_file), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])  # Added JPEG quality parameter
                 saved_count += 1
             
             pbar.update(1)
