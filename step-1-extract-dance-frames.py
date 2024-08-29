@@ -2,6 +2,7 @@ import cv2
 import os
 from pathlib import Path
 from tqdm import tqdm
+from moviepy.editor import VideoFileClip
 
 def extract_frames(video_path, output_dir, frames_per_second=30):
     print(f"Starting frame extraction process for: {video_path}")
@@ -56,6 +57,15 @@ def extract_frames(video_path, output_dir, frames_per_second=30):
     video.release()
     print(f"Frame extraction completed. Extracted {saved_count} frames from {video_name}")
     print(f"Frames saved in: {output_path}")
+
+    # Extract audio
+    print("Extracting audio...")
+    video_clip = VideoFileClip(video_path)
+    audio_clip = video_clip.audio
+    audio_output_path = output_path / f"{video_name}.mp3"
+    audio_clip.write_audiofile(str(audio_output_path))
+    video_clip.close()
+    print(f"Audio extracted and saved as: {audio_output_path}")
 
 # Example usage
 video_path = "data/pump.mp4"
