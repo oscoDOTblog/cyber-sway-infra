@@ -1,3 +1,8 @@
+# Custom 
+data/*.mp4
+results/*
+!results/README.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
