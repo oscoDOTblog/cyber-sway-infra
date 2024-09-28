@@ -1,0 +1,22 @@
+service: my-serverless-project
+
+provider:
+  name: aws
+  runtime: python3.10
+  stage: dev
+  region: us-east-1
+
+functions:
+  hello:
+    handler: src/handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux

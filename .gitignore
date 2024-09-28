@@ -4,6 +4,8 @@ master_result.json
 data/*.mp4
 results/*
 !results/README.md
+package-lock.json
+node_modules/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
