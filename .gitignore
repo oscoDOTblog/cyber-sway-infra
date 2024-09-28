@@ -1,4 +1,5 @@
 # Custom 
+secrets.py
 result.json
 master_result.json
 data/*.mp4

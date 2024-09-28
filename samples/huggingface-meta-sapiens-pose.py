@@ -1,13 +1,16 @@
-import time  # Add this import at the top of the file
-
+import time
 from gradio_client import Client, handle_file
 
-client = Client("facebook/sapiens-pose")
-start_time = time.time()  # Start timing
+# client = Client("facebook/sapiens-pose") # Original model
+client = Client("TimeInverse/sapiens-pose") # Custom model
+
+# Start timing
+start_time = time.time()  
 
 result = client.predict(
-		image=handle_file('https://huggingface.co/spaces/facebook/sapiens-pose/resolve/main/assets/images/pexels-gabby-k-6311686.png'),
-		model_name="0.3b",
+		# image=handle_file('https://huggingface.co/spaces/facebook/sapiens-pose/resolve/main/assets/images/pexels-gabby-k-6311686.png'),
+		image=handle_file("../results/pump/001800.jpg"),
+        model_name="0.3b",
 		kpt_threshold="0.3",
 		api_name="/process_image"
 )
