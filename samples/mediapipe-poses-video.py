@@ -12,8 +12,8 @@ from tqdm import tqdm
 BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
 FPS = 24.0
-GENERATE_OUTPUT_VIDEO = False  # Set to False to skip generating the output video
-VIDEO_PATH = "data/bye-bye-bye-trimmed.mp4"  # Replace this with the actual path to your video
+GENERATE_OUTPUT_VIDEO = True  # Set to False to skip generating the output video
+VIDEO_PATH = "data/starlit.mp4"  # Replace this with the actual path to your video
 
 # MediaPipe setup
 mp_draw = mp.solutions.drawing_utils
@@ -63,7 +63,7 @@ def extract_landmarks(video_path: str) -> Tuple[List[List[Tuple[float, float]]],
         landmarks.append(results)
 
         if results.pose_landmarks:
-            xy_landmark_coords.append([(lm.x, 1 - lm.y) for lm in results.pose_landmarks.landmark])  # Inverted y value
+            xy_landmark_coords.append([(lm.x - 0.5, 1 - lm.y) for lm in results.pose_landmarks.landmark])  # Adjusted x value
         else:
             xy_landmark_coords.append([(0, 0)] * len(PoseLandmark))
 
