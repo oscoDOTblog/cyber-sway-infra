@@ -117,7 +117,7 @@ def process_video(video_path: str):
     for frame_landmarks in landmarks:
         frame_data = []
         for landmark in frame_landmarks:
-            frame_data.append({"x": landmark[0], "y": landmark[1]})
+            frame_data.append([landmark[0], landmark[1]])  # Changed to array format
         json_output.append(frame_data)
 
     # Write JSON output to file
