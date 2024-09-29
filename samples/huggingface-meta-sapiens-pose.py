@@ -1,8 +1,10 @@
-import time
+import time 
+from PIL import Image  # Import the PIL library
+
 from gradio_client import Client, handle_file
 
-# client = Client("facebook/sapiens-pose") # Original model
-client = Client("TimeInverse/sapiens-pose") # Custom model
+client = Client("facebook/sapiens-pose") # Original model
+#client = Client("TimeInverse/sapiens-pose") # Custom model
 
 # Start timing
 start_time = time.time()  
@@ -23,3 +25,10 @@ filepath_json = result[1]  # Assuming result[1] is the JSON file path
 print(f"Image saved at: {filepath_img}")
 print(f"JSON data at: {filepath_json}")
 print(f"Time elapsed: {elapsed_time:.2f} seconds")
+
+# Open the image to get its height
+image_path = "../results/pump/001800.jpg"
+with Image.open(image_path) as img:
+    height = img.height  # Get the height of the image
+
+print(f"Image height: {height} pixels")  # Print the height
