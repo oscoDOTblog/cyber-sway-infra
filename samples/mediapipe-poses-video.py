@@ -12,9 +12,8 @@ from tqdm import tqdm
 BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
 FPS = 24.0
-
-# Hardcoded video path
-VIDEO_PATH = "data/bye-bye-bye.mp4"  # Replace this with the actual path to your video
+GENERATE_OUTPUT_VIDEO = False  # Set to False to skip generating the output video
+VIDEO_PATH = "data/bye-bye-bye-trimmed.mp4"  # Replace this with the actual path to your video
 
 # MediaPipe setup
 mp_draw = mp.solutions.drawing_utils
@@ -85,31 +84,33 @@ def process_video(video_path: str):
     # Extract landmarks, frames, and pose results
     landmarks, frames, pose_results = extract_landmarks(video_path)
 
-    # Prepare output video
-    output_video_path = os.path.join(output_dir, 'output_annotated.mp4')
-    height, width, _ = frames[0].shape
-    video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (width, height))
+    if GENERATE_OUTPUT_VIDEO:  # Check if output video should be generated
+        # Prepare output video
+        output_video_path = os.path.join(output_dir, 'output_annotated.mp4')
+        height, width, _ = frames[0].shape
+        video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (width, height))
 
-    # Create a progress bar for frame processing
-    pbar = tqdm(total=len(frames), desc="Processing frames", unit="frame")
+        # Create a progress bar for frame processing
+        pbar = tqdm(total=len(frames), desc="Processing frames", unit="frame")
 
-    # Process each frame
-    for frame_idx, (frame, pose_result) in enumerate(zip(frames, pose_results)):
-        # Draw pose landmarks on the frame
-        annotated_frame = frame.copy()
-        mp_draw.draw_landmarks(annotated_frame, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        # Process each frame
+        for frame_idx, (frame, pose_result) in enumerate(zip(frames, pose_results)):
+            # Draw pose landmarks on the frame
+            annotated_frame = frame.copy()
+            mp_draw.draw_landmarks(annotated_frame, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-        # Add frame number to the annotated frame
-        cv2.putText(annotated_frame, f"Frame: {frame_idx}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # Add frame number to the annotated frame
+            cv2.putText(annotated_frame, f"Frame: {frame_idx}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        # Write the annotated frame to the output video
-        video_writer.write(annotated_frame)
+            # Write the annotated frame to the output video
+            video_writer.write(annotated_frame)
 
-        # Update progress bar
-        pbar.update(1)
+            # Update progress bar
+            pbar.update(1)
 
-    pbar.close()
-    video_writer.release()
+        pbar.close()
+        video_writer.release()
+        print(f"Annotated video saved to: {output_video_path}")
 
     # Prepare JSON output
     json_output = []
@@ -124,7 +125,6 @@ def process_video(video_path: str):
     with open(json_output_path, 'w') as json_file:
         json.dump(json_output, json_file)
 
-    print(f"Annotated video saved to: {output_video_path}")
     print(f"Landmark data saved to: {json_output_path}")
 
 def main():
