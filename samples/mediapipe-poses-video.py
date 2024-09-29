@@ -63,7 +63,7 @@ def extract_landmarks(video_path: str) -> Tuple[List[List[Tuple[float, float]]],
         landmarks.append(results)
 
         if results.pose_landmarks:
-            xy_landmark_coords.append([(lm.x, lm.y) for lm in results.pose_landmarks.landmark])
+            xy_landmark_coords.append([(lm.x, 1 - lm.y) for lm in results.pose_landmarks.landmark])  # Inverted y value
         else:
             xy_landmark_coords.append([(0, 0)] * len(PoseLandmark))
 

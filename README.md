@@ -95,3 +95,40 @@ To set up this project:
 This will create a basic serverless project with a single function that responds to HTTP GET requests.
 
 Would you like me to explain any part of this setup in more detail or help you customize it further?
+
+## Output
+```json
+[
+  // Frame 1
+  [
+    [0.5, 0.1],  // NOSE
+    [0.4, 0.3],  // LEFT_SHOULDER
+    [0.6, 0.3],  // RIGHT_SHOULDER
+    [0.3, 0.5],  // LEFT_ELBOW
+    [0.7, 0.5],  // RIGHT_ELBOW
+    [0.2, 0.7],  // LEFT_WRIST
+    [0.8, 0.7],  // RIGHT_WRIST
+    [0.45, 0.6], // LEFT_HIP
+    [0.55, 0.6], // RIGHT_HIP
+    [0.4, 0.8],  // LEFT_KNEE
+    [0.6, 0.8],  // RIGHT_KNEE
+    [0.35, 1.0], // LEFT_ANKLE
+    [0.65, 1.0]  // RIGHT_ANKLE
+  ],
+  // Frame 2
+  [
+    [0.51, 0.11],
+    [0.41, 0.31],
+    [0.61, 0.31],
+    // ... (other landmarks)
+  ],
+  // ... (Frames 3 to 47)
+  // Frame 48
+  [
+    [0.53, 0.13],
+    [0.43, 0.33],
+    [0.63, 0.33],
+    // ... (other landmarks)
+  ]
+]
+```
