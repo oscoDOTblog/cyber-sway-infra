@@ -11,28 +11,28 @@ from tqdm import tqdm
 
 BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
-FPS = 24.0
+FPS_ANNOTATE = 24.0
 GENERATE_OUTPUT_VIDEO = True  # Set to False to skip generating the output video
-VIDEO_PATH = "data/starlit.mp4"  # Replace this with the actual path to your video
+VIDEO_PATH = "data/bye-bye-bye.mp4"  # Replace this with the actual path to your video
 
 # MediaPipe setup
 mp_draw = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 class PoseLandmark(Enum):
-    NOSE = 0
-    LEFT_SHOULDER = 11
-    RIGHT_SHOULDER = 12
-    LEFT_ELBOW = 13
-    RIGHT_ELBOW = 14
-    LEFT_WRIST = 15
-    RIGHT_WRIST = 16
-    LEFT_HIP = 23
-    RIGHT_HIP = 24
-    LEFT_KNEE = 25
-    RIGHT_KNEE = 26
-    LEFT_ANKLE = 27
-    RIGHT_ANKLE = 28
+    NOSE = 0  # 0
+    LEFT_SHOULDER = 11  # 1
+    RIGHT_SHOULDER = 12  # 2
+    LEFT_ELBOW = 13  # 3
+    RIGHT_ELBOW = 14  # 4
+    LEFT_WRIST = 15  # 5
+    RIGHT_WRIST = 16  # 6
+    LEFT_HIP = 23  # 7
+    RIGHT_HIP = 24  # 8
+    LEFT_KNEE = 25  # 9
+    RIGHT_KNEE = 26  # 10
+    LEFT_ANKLE = 27  # 11
+    RIGHT_ANKLE = 28  # 12
 
 def get_frame_count(filename: str) -> Tuple[cv2.VideoCapture, int]:
     """Returns a tuple of (captured video, frame count)."""
@@ -84,11 +84,27 @@ def process_video(video_path: str):
     # Extract landmarks, frames, and pose results
     landmarks, frames, pose_results = extract_landmarks(video_path)
 
+    # Get video length in milliseconds using OpenCV
+    video = cv2.VideoCapture(video_path)
+    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = video.get(cv2.CAP_PROP_FPS)
+    video_length_ms = int((frame_count / fps) * 1000)  # Calculate length in milliseconds
+    video.release()  # Release the video capture object
+
+    # Save metadata to JSON
+    metadata = {
+        "frame_count": frame_count,
+        "video_length_ms": video_length_ms
+    }
+    metadata_output_path = os.path.join(output_dir, 'metadata.json')
+    with open(metadata_output_path, 'w') as metadata_file:
+        json.dump(metadata, metadata_file)
+
     if GENERATE_OUTPUT_VIDEO:  # Check if output video should be generated
         # Prepare output video
         output_video_path = os.path.join(output_dir, 'output_annotated.mp4')
         height, width, _ = frames[0].shape
-        video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (width, height))
+        video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS_ANNOTATE, (width, height))
 
         # Create a progress bar for frame processing
         pbar = tqdm(total=len(frames), desc="Processing frames", unit="frame")

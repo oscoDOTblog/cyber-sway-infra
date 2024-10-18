@@ -1,6 +1,8 @@
+# uvicorn samples.api:app --reload
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -23,5 +25,14 @@ async def serve_landmarks(request_name: str):
 @app.get('/api/hello')
 async def hello():
     return {"Hello": "World"}
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # ... existing code ...
