@@ -8,11 +8,12 @@ import cv2
 import numpy as np
 import mediapipe as mp
 from tqdm import tqdm
+from pydub import AudioSegment  # Importing AudioSegment for audio extraction
 
 BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
 FPS_ANNOTATE = 24.0
-GENERATE_OUTPUT_VIDEO = True  # Set to False to skip generating the output video
+GENERATE_OUTPUT_VIDEO = False  # Set to False to skip generating the output video
 VIDEO_PATH = "data/bye-bye-bye.mp4"  # Replace this with the actual path to your video
 
 # MediaPipe setup
@@ -71,6 +72,13 @@ def extract_landmarks(video_path: str) -> Tuple[List[List[Tuple[float, float]]],
 
     pbar.close()
     return xy_landmark_coords, frames, landmarks
+
+def extract_audio(video_path: str, output_dir: str):
+    """Extracts audio from the video and saves it as an MP3 file."""
+    audio = AudioSegment.from_file(video_path)  # Load the video file
+    audio_output_path = os.path.join(output_dir, os.path.splitext(os.path.basename(video_path))[0] + '.mp3')
+    audio.export(audio_output_path, format='mp3')  # Export as MP3
+    print(f"Audio extracted and saved to: {audio_output_path}")
 
 def process_video(video_path: str):
     """Processes a single video, outputs an annotated video and a JSON file with landmark coordinates."""
@@ -142,6 +150,9 @@ def process_video(video_path: str):
         json.dump(json_output, json_file)
 
     print(f"Landmark data saved to: {json_output_path}")
+
+    # Extract audio from the video
+    extract_audio(video_path, output_dir)  # Call the audio extraction function
 
 def main():
     process_video(VIDEO_PATH)
