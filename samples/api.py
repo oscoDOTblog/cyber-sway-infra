@@ -38,6 +38,19 @@ async def serve_metadata(request_name: str):
     else:
         raise HTTPException(status_code=404, detail="File not found")
 
+@app.get('/api/audio/{request_name}')
+async def serve_audio(request_name: str):
+    # Construct the path to the MP3 file
+    audio_file_path = os.path.join('results', f'{request_name}/{request_name}.mp3')
+    
+    # Check if the file exists
+    if os.path.exists(audio_file_path):
+        print(f"Serving audio file: {audio_file_path}")
+        return FileResponse(audio_file_path)
+    else:
+        print(f"Files in root: {os.listdir(os.path.dirname(audio_file_path))}")
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

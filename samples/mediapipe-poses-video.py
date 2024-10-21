@@ -14,7 +14,7 @@ BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
 FPS_ANNOTATE = 24.0
 GENERATE_OUTPUT_VIDEO = False  # Set to False to skip generating the output video
-VIDEO_PATH = "data/bye-bye-bye.mp4"  # Replace this with the actual path to your video
+VIDEO_PATH = "data/caffeinated.mp4"  # Replace this with the actual path to your video
 
 # MediaPipe setup
 mp_draw = mp.solutions.drawing_utils
