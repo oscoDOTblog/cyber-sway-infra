@@ -1,8 +1,10 @@
+# python mediapipe-poses-video.py <video_name>
 import os
 import json
 import math
 from enum import Enum
 from typing import List, Tuple
+import sys  # Import sys to access command line arguments
 
 import cv2
 import numpy as np
@@ -14,7 +16,8 @@ BASE_OUTPUT_DIR = "results"
 EXIST_FLAG = "-n"  # ignore existing file, change to -y to always overwrite
 FPS_ANNOTATE = 24.0
 GENERATE_OUTPUT_VIDEO = False  # Set to False to skip generating the output video
-VIDEO_PATH = "data/caffeinated.mp4"  # Replace this with the actual path to your video
+SKIP_LANDMARK_PROCESSING = False  # Set to True to skip landmark processing
+
 
 # MediaPipe setup
 mp_draw = mp.solutions.drawing_utils
@@ -88,74 +91,76 @@ def process_video(video_path: str):
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     output_dir = os.path.join(BASE_OUTPUT_DIR, video_name)
     os.makedirs(output_dir, exist_ok=True)
+    if not SKIP_LANDMARK_PROCESSING:  # Check if landmark processing should be skipped
+        # Extract landmarks, frames, and pose results
+        landmarks, frames, pose_results = extract_landmarks(video_path)
 
-    # Extract landmarks, frames, and pose results
-    landmarks, frames, pose_results = extract_landmarks(video_path)
+        # Get video length in milliseconds using OpenCV
+        video = cv2.VideoCapture(video_path)
+        frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = video.get(cv2.CAP_PROP_FPS)
+        video_length_ms = int((frame_count / fps) * 1000)  # Calculate length in milliseconds
+        video.release()  # Release the video capture object
 
-    # Get video length in milliseconds using OpenCV
-    video = cv2.VideoCapture(video_path)
-    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = video.get(cv2.CAP_PROP_FPS)
-    video_length_ms = int((frame_count / fps) * 1000)  # Calculate length in milliseconds
-    video.release()  # Release the video capture object
+        # Save metadata to JSON
+        metadata = {
+            "frame_count": frame_count,
+            "video_length_ms": video_length_ms,
+            "step_update_interval": 11.125  # Added new field with default value
+        }
+        metadata_output_path = os.path.join(output_dir, 'metadata.json')
+        with open(metadata_output_path, 'w') as metadata_file:
+            json.dump(metadata, metadata_file)
 
-    # Save metadata to JSON
-    metadata = {
-        "frame_count": frame_count,
-        "video_length_ms": video_length_ms
-    }
-    metadata_output_path = os.path.join(output_dir, 'metadata.json')
-    with open(metadata_output_path, 'w') as metadata_file:
-        json.dump(metadata, metadata_file)
+        if GENERATE_OUTPUT_VIDEO:  # Check if output video should be generated
+            # Prepare output video
+            output_video_path = os.path.join(output_dir, 'output_annotated.mp4')
+            height, width, _ = frames[0].shape
+            video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS_ANNOTATE, (width, height))
 
-    if GENERATE_OUTPUT_VIDEO:  # Check if output video should be generated
-        # Prepare output video
-        output_video_path = os.path.join(output_dir, 'output_annotated.mp4')
-        height, width, _ = frames[0].shape
-        video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), FPS_ANNOTATE, (width, height))
+            # Create a progress bar for frame processing
+            pbar = tqdm(total=len(frames), desc="Processing frames", unit="frame")
 
-        # Create a progress bar for frame processing
-        pbar = tqdm(total=len(frames), desc="Processing frames", unit="frame")
+            # Process each frame
+            for frame_idx, (frame, pose_result) in enumerate(zip(frames, pose_results)):
+                # Draw pose landmarks on the frame
+                annotated_frame = frame.copy()
+                mp_draw.draw_landmarks(annotated_frame, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-        # Process each frame
-        for frame_idx, (frame, pose_result) in enumerate(zip(frames, pose_results)):
-            # Draw pose landmarks on the frame
-            annotated_frame = frame.copy()
-            mp_draw.draw_landmarks(annotated_frame, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                # Add frame number to the annotated frame
+                cv2.putText(annotated_frame, f"Frame: {frame_idx}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-            # Add frame number to the annotated frame
-            cv2.putText(annotated_frame, f"Frame: {frame_idx}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                # Write the annotated frame to the output video
+                video_writer.write(annotated_frame)
 
-            # Write the annotated frame to the output video
-            video_writer.write(annotated_frame)
+                # Update progress bar
+                pbar.update(1)
 
-            # Update progress bar
-            pbar.update(1)
+            pbar.close()
+            video_writer.release()
+            print(f"Annotated video saved to: {output_video_path}")
 
-        pbar.close()
-        video_writer.release()
-        print(f"Annotated video saved to: {output_video_path}")
+        # Prepare JSON output
+        json_output = []
+        for frame_landmarks in landmarks:
+            frame_data = []
+            for landmark in frame_landmarks:
+                frame_data.append([landmark[0], landmark[1]])  # Changed to array format
+            json_output.append(frame_data)
 
-    # Prepare JSON output
-    json_output = []
-    for frame_landmarks in landmarks:
-        frame_data = []
-        for landmark in frame_landmarks:
-            frame_data.append([landmark[0], landmark[1]])  # Changed to array format
-        json_output.append(frame_data)
+        # Write JSON output to file
+        json_output_path = os.path.join(output_dir, 'landmarks.json')
+        with open(json_output_path, 'w') as json_file:
+            json.dump(json_output, json_file)
 
-    # Write JSON output to file
-    json_output_path = os.path.join(output_dir, 'landmarks.json')
-    with open(json_output_path, 'w') as json_file:
-        json.dump(json_output, json_file)
-
-    print(f"Landmark data saved to: {json_output_path}")
+        print(f"Landmark data saved to: {json_output_path}")
 
     # Extract audio from the video
     extract_audio(video_path, output_dir)  # Call the audio extraction function
 
 def main():
-    process_video(VIDEO_PATH)
+    video_path = f"data/{sys.argv[1]}.mp4"  # Get the video path from the first argument
+    process_video(video_path)
 
 if __name__ == "__main__":
     main()
